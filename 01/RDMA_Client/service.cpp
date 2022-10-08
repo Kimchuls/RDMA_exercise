@@ -558,13 +558,13 @@ static int resources_create(struct resources *res)
 	}
 	memset(res->buf, 0, size);
 	/* only in the server side put the message in the memory buffer */
-	if (!config.server_name)
-	{
-		strcpy(res->buf, MSG);
-		fprintf(stdout, "going to send the message: '%s'\n", res->buf);
-	}
-	else
-		memset(res->buf, 0, size);
+	// if (!config.server_name)
+	// {
+	// 	strcpy(res->buf, MSG);
+	// 	fprintf(stdout, "going to send the message: '%s'\n", res->buf);
+	// }
+	// else
+	memset(res->buf, 0, size);
 	/* register the memory buffer */
 	mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 	res->mr = ibv_reg_mr(res->pd, res->buf, size, mr_flags);
@@ -1045,9 +1045,8 @@ int main(int argc, char *argv[])
 		}
 	}
 	/* parse the last parameter (if exists) as the server name */
-	if (optind == argc - 1)
+	if (optind == argc - 1){
 		config.server_name = argv[optind];
-    if(config.server_name){
         printf("servername=%s\n",config.server_name);
     }
 	else if (optind < argc)
@@ -1058,7 +1057,6 @@ int main(int argc, char *argv[])
 	/* print the used parameters for info*/
 	print_config();
 
-	
 	/* init all of the resources, so cleanup will be easy */
 	resources_init(&res);
 	/* create resources before using them */
@@ -1073,13 +1071,13 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "failed to connect QPs\n");
 		goto main_exit;
 	}
-	/* let the server post the sr */
-	if (!config.server_name)
-		if (post_send(&res, IBV_WR_SEND))
-		{
-			fprintf(stderr, "failed to post sr\n");
-			goto main_exit;
-		}
+	// /* let the server post the sr */
+	// if (!config.server_name)
+	// 	if (post_send(&res, IBV_WR_SEND))
+	// 	{
+	// 		fprintf(stderr, "failed to post sr\n");
+	// 		goto main_exit;
+	// 	}
 	/* in both sides we expect to get a completion */
 	if (poll_completion(&res))
 	{
@@ -1089,11 +1087,11 @@ int main(int argc, char *argv[])
 	/* after polling the completion we have the message in the client buffer too */
 	if (config.server_name)
 		fprintf(stdout, "Message is: '%s'\n", res.buf);
-	else
-	{
-		/* setup server buffer with read message */
-		strcpy(res.buf, RDMAMSGR);
-	}
+	// else
+	// {
+	// 	/* setup server buffer with read message */
+	// 	strcpy(res.buf, RDMAMSGR);
+	// }
 	/* Sync so we are sure server side has data ready before client tries to read it */
 	
 	if (sock_sync_data(res.sock, 1, temp_send_R, &temp_char)) /* just send a dummy char back and forth */
@@ -1143,9 +1141,9 @@ Note that the server has no idea these events have occured */
 		rc = 1;
 		goto main_exit;
 	}
-	if (!config.server_name)
-		fprintf(stdout, "Contents of server buffer: '%s'\n", res.buf);
-	rc = 0;
+	// if (!config.server_name)
+	// 	fprintf(stdout, "Contents of server buffer: '%s'\n", res.buf);
+	// rc = 0;
 main_exit:
 	if (resources_destroy(&res))
 	{
