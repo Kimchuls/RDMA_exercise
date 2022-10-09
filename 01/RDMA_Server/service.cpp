@@ -5,17 +5,17 @@ libverbs RDMA_RC_example.c
 *
 */
 /******************************************************************************
-*
-* RDMA Aware Networks Programming Example
-*
-* This code demonstrates how to perform the following operations using the * VPI Verbs API:
-*
-* Send
-* Receive
-* RDMA Read
-* RDMA Write
-*
-*****************************************************************************/
+ *
+ * RDMA Aware Networks Programming Example
+ *
+ * This code demonstrates how to perform the following operations using the * VPI Verbs API:
+ *
+ * Send
+ * Receive
+ * RDMA Read
+ * RDMA Write
+ *
+ *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,10 +34,11 @@ libverbs RDMA_RC_example.c
 #include <netdb.h>
 /* poll CQ timeout in millisec (2 seconds) */
 #define MAX_POLL_CQ_TIMEOUT 2000
-#define MSG "SEND operation 35"
-#define RDMAMSGR "RDMA read operation 35 "
-#define RDMAMSGW "RDMA write operation 35"
-#define MSG_SIZE (strlen(MSG) + 1)
+#define MSG "24017"
+#define RDMAMSGR "RDMA read operation 36 "
+#define RDMAMSGW "RDMA write operation 36"
+// #define MSG_SIZE (strlen(MSG) + 1)
+#define MSG_SIZE 60
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
 static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
@@ -51,18 +52,18 @@ static inline uint64_t ntohll(uint64_t x) { return x; }
 struct config_t
 {
 	const char *dev_name; /* IB device name */
-	char *server_name;	/* server host name */
-	u_int32_t tcp_port;   /* server TCP port */
+	char *server_name;	  /* server host name */
+	u_int32_t tcp_port;	  /* server TCP port */
 	int ib_port;		  /* local IB port to work with */
 	int gid_idx;		  /* gid index to use */
 };
 /* structure to exchange data which is needed to connect the QPs */
 struct cm_con_data_t
 {
-	uint64_t addr;   /* Buffer address */
-	uint32_t rkey;   /* Remote key */
+	uint64_t addr;	 /* Buffer address */
+	uint32_t rkey;	 /* Remote key */
 	uint32_t qp_num; /* QP number */
-	uint16_t lid;	/* LID of the IB port */
+	uint16_t lid;	 /* LID of the IB port */
 	uint8_t gid[16]; /* gid */
 } __attribute__((packed));
 
@@ -72,7 +73,7 @@ struct resources
 	struct ibv_device_attr
 		device_attr;
 	/* Device attributes */
-	struct ibv_port_attr port_attr;	/* IB port attributes */
+	struct ibv_port_attr port_attr;	   /* IB port attributes */
 	struct cm_con_data_t remote_props; /* values to connect to remote side */
 	struct ibv_context *ib_ctx;		   /* device handle */
 	struct ibv_pd *pd;				   /* PD handle */
@@ -87,7 +88,7 @@ struct config_t config = {
 	NULL,  /* dev_name */
 	NULL,  /* server_name */
 	19875, /* tcp_port */
-	1,	 /* ib_port */
+	1,	   /* ib_port */
 	-1 /* gid_idx */};
 
 /******************************************************************************
@@ -98,24 +99,24 @@ information. If a TCP/IP stack/connection is not available, connection manager
 this example
 ******************************************************************************/
 /******************************************************************************
-* Function: sock_connect
-*
-* Input
-* servername URL of server to connect to (NULL for server mode)
-* port port of service
-*
-* Output
-* none
-*
-* Returns
-* socket (fd) on success, negative error code on failure
-*
-* Description
-* Connect a socket. If servername is specified a client connection will be
-* initiated to the indicated server and port. Otherwise listen on the
-* indicated port for an incoming connection.
-*
-******************************************************************************/
+ * Function: sock_connect
+ *
+ * Input
+ * servername URL of server to connect to (NULL for server mode)
+ * port port of service
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * socket (fd) on success, negative error code on failure
+ *
+ * Description
+ * Connect a socket. If servername is specified a client connection will be
+ * initiated to the indicated server and port. Otherwise listen on the
+ * indicated port for an incoming connection.
+ *
+ ******************************************************************************/
 static int sock_connect(const char *servername, int port)
 {
 	struct addrinfo *resolved_addr = NULL;
@@ -142,16 +143,17 @@ static int sock_connect(const char *servername, int port)
 	for (iterator = resolved_addr; iterator; iterator = iterator->ai_next)
 	{
 		sockfd = socket(iterator->ai_family, iterator->ai_socktype, iterator->ai_protocol);
-		// 设置套接字选项避免地址使用错误  
-		int on=1;  
-		if((setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)))<0)  
-		{  
-			perror("setsockopt failed");  
-			exit(EXIT_FAILURE);  
-		}  
+		// 设置套接字选项避免地址使用错误
+		int on = 1;
+		if ((setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) < 0)
+		{
+			perror("setsockopt failed");
+			exit(EXIT_FAILURE);
+		}
 		if (sockfd >= 0)
 		{
-			if (servername){
+			if (servername)
+			{
 				/* Client mode. Initiate connection to remote */
 				if ((tmp = connect(sockfd, iterator->ai_addr, iterator->ai_addrlen)))
 				{
@@ -159,16 +161,16 @@ static int sock_connect(const char *servername, int port)
 					close(sockfd);
 					sockfd = -1;
 				}
-            }
+			}
 			else
 			{
-					/* Server mode. Set up listening socket an accept a connection */
-					listenfd = sockfd;
-					sockfd = -1;
-					if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
-						goto sock_connect_exit;
-					listen(listenfd, 1);
-					sockfd = accept(listenfd, NULL, 0);
+				/* Server mode. Set up listening socket an accept a connection */
+				listenfd = sockfd;
+				sockfd = -1;
+				if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
+					goto sock_connect_exit;
+				listen(listenfd, 1);
+				sockfd = accept(listenfd, NULL, 0);
 			}
 		}
 	}
@@ -190,29 +192,29 @@ sock_connect_exit:
 	return sockfd;
 }
 /******************************************************************************
-* Function: sock_sync_data
-*
-* Input
-* sock socket to transfer data on
-* xfer_size size of data to transfer
-* local_data pointer to data to be sent to remote
-*
-* Output
-* remote_data pointer to buffer to receive remote data
-*
-* Returns
-* 0 on success, negative error code on failure
-*
-* Description
-* Sync data across a socket. The indicated local data will be sent to the
-* remote. It will then wait for the remote to send its data back. It is
-* assumed that the two sides are in sync and call this function in the proper
-* order. Chaos will ensue if they are not. :)
-*
-* Also note this is a blocking function and will wait for the full data to be
-* received from the remote.
-*
-******************************************************************************/
+ * Function: sock_sync_data
+ *
+ * Input
+ * sock socket to transfer data on
+ * xfer_size size of data to transfer
+ * local_data pointer to data to be sent to remote
+ *
+ * Output
+ * remote_data pointer to buffer to receive remote data
+ *
+ * Returns
+ * 0 on success, negative error code on failure
+ *
+ * Description
+ * Sync data across a socket. The indicated local data will be sent to the
+ * remote. It will then wait for the remote to send its data back. It is
+ * assumed that the two sides are in sync and call this function in the proper
+ * order. Chaos will ensue if they are not. :)
+ *
+ * Also note this is a blocking function and will wait for the full data to be
+ * received from the remote.
+ *
+ ******************************************************************************/
 int sock_sync_data(int sock, int xfer_size, char *local_data, char *remote_data)
 {
 	int rc;
@@ -238,22 +240,22 @@ End of socket operations
 ******************************************************************************/
 /* poll_completion */
 /******************************************************************************
-* Function: poll_completion
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, 1 on failure
-*
-* Description
-* Poll the completion queue for a single event. This function will continue to
-* poll the queue until MAX_POLL_CQ_TIMEOUT milliseconds have passed.
-*
-******************************************************************************/
+ * Function: poll_completion
+ *
+ * Input
+ * res pointer to resources structure
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, 1 on failure
+ *
+ * Description
+ * Poll the completion queue for a single event. This function will continue to
+ * poll the queue until MAX_POLL_CQ_TIMEOUT milliseconds have passed.
+ *
+ ******************************************************************************/
 static int poll_completion(struct resources *res)
 {
 	struct ibv_wc wc;
@@ -297,21 +299,21 @@ static int poll_completion(struct resources *res)
 	return rc;
 }
 /******************************************************************************
-* Function: post_send
-*
-* Input
-* res pointer to resources structure
-* opcode IBV_WR_SEND, IBV_WR_RDMA_READ or IBV_WR_RDMA_WRITE
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-* This function will create and post a send work request
-******************************************************************************/
+ * Function: post_send
+ *
+ * Input
+ * res pointer to resources structure
+ * opcode IBV_WR_SEND, IBV_WR_RDMA_READ or IBV_WR_RDMA_WRITE
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, error code on failure
+ *
+ * Description
+ * This function will create and post a send work request
+ ******************************************************************************/
 static int post_send(struct resources *res, int opcode)
 {
 	struct ibv_send_wr sr;
@@ -361,20 +363,20 @@ static int post_send(struct resources *res, int opcode)
 	return rc;
 }
 /******************************************************************************
-* Function: post_receive
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-*
-******************************************************************************/
+ * Function: post_receive
+ *
+ * Input
+ * res pointer to resources structure
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, error code on failure
+ *
+ * Description
+ *
+ ******************************************************************************/
 static int post_receive(struct resources *res)
 {
 	struct ibv_recv_wr rr;
@@ -401,42 +403,42 @@ static int post_receive(struct resources *res)
 	return rc;
 }
 /******************************************************************************
-* Function: resources_init
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* res is initialized
-*
-* Returns
-* none
-*
-* Description
-* res is initialized to default values
-******************************************************************************/
+ * Function: resources_init
+ *
+ * Input
+ * res pointer to resources structure
+ *
+ * Output
+ * res is initialized
+ *
+ * Returns
+ * none
+ *
+ * Description
+ * res is initialized to default values
+ ******************************************************************************/
 static void resources_init(struct resources *res)
 {
 	memset(res, 0, sizeof *res);
 	res->sock = -1;
 }
 /******************************************************************************
-* Function: resources_create
-*
-* Input
-* res pointer to resources structure to be filled in
-*
-* Output
-* res filled in with resources
-*
-* Returns
-* 0 on success, 1 on failure
-*
-* Description
-*
-* This function creates and allocates all necessary system resources. These
-* are stored in res.
-*****************************************************************************/
+ * Function: resources_create
+ *
+ * Input
+ * res pointer to resources structure to be filled in
+ *
+ * Output
+ * res filled in with resources
+ *
+ * Returns
+ * 0 on success, 1 on failure
+ *
+ * Description
+ *
+ * This function creates and allocates all necessary system resources. These
+ * are stored in res.
+ *****************************************************************************/
 static int resources_create(struct resources *res)
 {
 	struct ibv_device **dev_list = NULL;
@@ -449,29 +451,29 @@ static int resources_create(struct resources *res)
 	int num_devices;
 	int rc = 0;
 	/* if client side */
-	if (config.server_name)
+	// if (config.server_name)
+	// {
+	// 	res->sock = sock_connect(config.server_name, config.tcp_port);
+	// 	if (res->sock < 0)
+	// 	{
+	// 		fprintf(stderr, "failed to establish TCP connection to server %s, port %d\n",
+	// 				config.server_name, config.tcp_port);
+	// 		rc = -1;
+	// 		goto resources_create_exit;
+	// 	}
+	// }
+	// else
+	// {
+	fprintf(stdout, "waiting on port %d for TCP connection\n", config.tcp_port);
+	res->sock = sock_connect(NULL, config.tcp_port);
+	if (res->sock < 0)
 	{
-		res->sock = sock_connect(config.server_name, config.tcp_port);
-		if (res->sock < 0)
-		{
-			fprintf(stderr, "failed to establish TCP connection to server %s, port %d\n",
-					config.server_name, config.tcp_port);
-			rc = -1;
-			goto resources_create_exit;
-		}
+		fprintf(stderr, "failed to establish TCP connection with client on port %d\n",
+				config.tcp_port);
+		rc = -1;
+		goto resources_create_exit;
 	}
-	else
-	{
-		fprintf(stdout, "waiting on port %d for TCP connection\n", config.tcp_port);
-		res->sock = sock_connect(NULL, config.tcp_port);
-		if (res->sock < 0)
-		{
-			fprintf(stderr, "failed to establish TCP connection with client on port %d\n",
-					config.tcp_port);
-			rc = -1;
-			goto resources_create_exit;
-		}
-	}
+	// }
 	fprintf(stdout, "TCP connection was established\n");
 	fprintf(stdout, "searching for IB devices in host\n");
 	/* get device names in the system */
@@ -558,13 +560,13 @@ static int resources_create(struct resources *res)
 	}
 	memset(res->buf, 0, size);
 	/* only in the server side put the message in the memory buffer */
-	if (!config.server_name)
-	{
-		strcpy(res->buf, MSG);
-		fprintf(stdout, "going to send the message: '%s'\n", res->buf);
-	}
-	else
-		memset(res->buf, 0, size);
+	// if (!config.server_name)
+	// {
+	strcpy(res->buf, MSG);
+	fprintf(stdout, "going to send the message: '%s'\n", res->buf);
+	// }
+	// else
+	// 	memset(res->buf, 0, size);
 	/* register the memory buffer */
 	mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 	res->mr = ibv_reg_mr(res->pd, res->buf, size, mr_flags);
@@ -643,20 +645,20 @@ resources_create_exit:
 	return rc;
 }
 /******************************************************************************
-* Function: modify_qp_to_init
-*
-* Input
-* qp QP to transition
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, ibv_modify_qp failure code on failure
-*
-* Description
-* Transition a QP from the RESET to INIT state
-******************************************************************************/
+ * Function: modify_qp_to_init
+ *
+ * Input
+ * qp QP to transition
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, ibv_modify_qp failure code on failure
+ *
+ * Description
+ * Transition a QP from the RESET to INIT state
+ ******************************************************************************/
 static int modify_qp_to_init(struct ibv_qp *qp)
 {
 	struct ibv_qp_attr attr;
@@ -674,23 +676,23 @@ static int modify_qp_to_init(struct ibv_qp *qp)
 	return rc;
 }
 /******************************************************************************
-* Function: modify_qp_to_rtr
-*
-* Input
-* qp QP to transition
-* remote_qpn remote QP number
-* dlid destination LID
-* dgid destination GID (mandatory for RoCEE)
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, ibv_modify_qp failure code on failure
-*
-* Description
-* Transition a QP from the INIT to RTR state, using the specified QP number
-******************************************************************************/
+ * Function: modify_qp_to_rtr
+ *
+ * Input
+ * qp QP to transition
+ * remote_qpn remote QP number
+ * dlid destination LID
+ * dgid destination GID (mandatory for RoCEE)
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, ibv_modify_qp failure code on failure
+ *
+ * Description
+ * Transition a QP from the INIT to RTR state, using the specified QP number
+ ******************************************************************************/
 static int modify_qp_to_rtr(struct ibv_qp *qp, uint32_t remote_qpn, uint16_t dlid, uint8_t *dgid)
 {
 	struct ibv_qp_attr attr;
@@ -726,20 +728,20 @@ static int modify_qp_to_rtr(struct ibv_qp *qp, uint32_t remote_qpn, uint16_t dli
 	return rc;
 }
 /******************************************************************************
-* Function: modify_qp_to_rts
-*
-* Input
-* qp QP to transition
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, ibv_modify_qp failure code on failure
-*
-* Description
-* Transition a QP from the RTR to RTS state
-******************************************************************************/
+ * Function: modify_qp_to_rts
+ *
+ * Input
+ * qp QP to transition
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, ibv_modify_qp failure code on failure
+ *
+ * Description
+ * Transition a QP from the RTR to RTS state
+ ******************************************************************************/
 static int modify_qp_to_rts(struct ibv_qp *qp)
 {
 	struct ibv_qp_attr attr;
@@ -760,20 +762,20 @@ static int modify_qp_to_rts(struct ibv_qp *qp)
 	return rc;
 }
 /******************************************************************************
-* Function: connect_qp
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-* Connect the QP. Transition the server side to RTR, sender side to RTS
-******************************************************************************/
+ * Function: connect_qp
+ *
+ * Input
+ * res pointer to resources structure
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, error code on failure
+ *
+ * Description
+ * Connect the QP. Transition the server side to RTR, sender side to RTS
+ ******************************************************************************/
 static int connect_qp(struct resources *res)
 {
 	struct cm_con_data_t local_con_data;
@@ -821,8 +823,8 @@ static int connect_qp(struct resources *res)
 	if (config.gid_idx >= 0)
 	{
 		uint8_t *p = remote_con_data.gid;
-		fprintf(stdout, "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ",p[0],
-				  p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+		fprintf(stdout, "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ", p[0],
+				p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 	}
 	/* modify the QP to init */
 	rc = modify_qp_to_init(res->qp);
@@ -832,15 +834,15 @@ static int connect_qp(struct resources *res)
 		goto connect_qp_exit;
 	}
 	/* let the client post RR to be prepared for incoming messages */
-	if (config.server_name)
-	{
-		rc = post_receive(res);
-		if (rc)
-		{
-			fprintf(stderr, "failed to post RR\n");
-			goto connect_qp_exit;
-		}
-	}
+	// if (config.server_name)
+	// {
+	// 	rc = post_receive(res);
+	// 	if (rc)
+	// 	{
+	// 		fprintf(stderr, "failed to post RR\n");
+	// 		goto connect_qp_exit;
+	// 	}
+	// }
 	/* modify the QP to RTR */
 	rc = modify_qp_to_rtr(res->qp, remote_con_data.qp_num, remote_con_data.lid, remote_con_data.gid);
 	if (rc)
@@ -856,7 +858,7 @@ static int connect_qp(struct resources *res)
 	}
 	fprintf(stdout, "QP state was change to RTS\n");
 	/* sync to make sure that both sides are in states that they can connect to prevent packet loose */
-	
+
 	if (sock_sync_data(res->sock, 1, temp_send, &temp_char)) /* just send a dummy char back and forth */
 	{
 		fprintf(stderr, "sync error after QPs are were moved to RTS\n");
@@ -866,20 +868,20 @@ connect_qp_exit:
 	return rc;
 }
 /******************************************************************************
-* Function: resources_destroy
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, 1 on failure
-*
-* Description
-* Cleanup and deallocate all resources used
-******************************************************************************/
+ * Function: resources_destroy
+ *
+ * Input
+ * res pointer to resources structure
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, 1 on failure
+ *
+ * Description
+ * Cleanup and deallocate all resources used
+ ******************************************************************************/
 static int resources_destroy(struct resources *res)
 {
 	int rc = 0;
@@ -924,27 +926,27 @@ static int resources_destroy(struct resources *res)
 	return rc;
 }
 /******************************************************************************
-* Function: print_config
-*
-* Input
-* none
-*
-* Output
-* none
-*
-* Returns
-* none
-*
-* Description
-* Print out config information
-******************************************************************************/
+ * Function: print_config
+ *
+ * Input
+ * none
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * none
+ *
+ * Description
+ * Print out config information
+ ******************************************************************************/
 static void print_config(void)
 {
 	fprintf(stdout, " ------------------------------------------------\n");
 	fprintf(stdout, " Device name : \"%s\"\n", config.dev_name);
 	fprintf(stdout, " IB port : %u\n", config.ib_port);
-	if (config.server_name)
-		fprintf(stdout, " IP : %s\n", config.server_name);
+	// if (config.server_name)
+	// 	fprintf(stdout, " IP : %s\n", config.server_name);
 	fprintf(stdout, " TCP port : %u\n", config.tcp_port);
 	if (config.gid_idx >= 0)
 		fprintf(stdout, " GID index : %u\n", config.gid_idx);
@@ -952,20 +954,20 @@ static void print_config(void)
 }
 
 /******************************************************************************
-* Function: usage
-*
-* Input
-* argv0 command line arguments
-*
-* Output
-* none
-*
-* Returns
-* none
-*
-* Description
-* print a description of command line syntax
-******************************************************************************/
+ * Function: usage
+ *
+ * Input
+ * argv0 command line arguments
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * none
+ *
+ * Description
+ * print a description of command line syntax
+ ******************************************************************************/
 static void usage(const char *argv0)
 {
 	fprintf(stdout, "Usage:\n");
@@ -979,21 +981,21 @@ static void usage(const char *argv0)
 	fprintf(stdout, " -g, --gid_idx <git index> gid index to be used in GRH (default not used)\n");
 }
 /******************************************************************************
-* Function: main
-*
-* Input
-* argc number of items in argv
-* argv command line parameters
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, 1 on failure
-*
-* Description
-* Main program code
-******************************************************************************/
+ * Function: main
+ *
+ * Input
+ * argc number of items in argv
+ * argv command line parameters
+ *
+ * Output
+ * none
+ *
+ * Returns
+ * 0 on success, 1 on failure
+ *
+ * Description
+ * Main program code
+ ******************************************************************************/
 int main(int argc, char *argv[])
 {
 	struct resources res;
@@ -1010,8 +1012,7 @@ int main(int argc, char *argv[])
 			{.name = "ib-dev", .has_arg = 1, .val = 'd'},
 			{.name = "ib-port", .has_arg = 1, .val = 'i'},
 			{.name = "gid-idx", .has_arg = 1, .val = 'g'},
-			{.name = NULL, .has_arg = 0, .val = '\0'}
-        };
+			{.name = NULL, .has_arg = 0, .val = '\0'}};
 		c = getopt_long(argc, argv, "p:d:i:g:", long_options, NULL);
 		if (c == -1)
 			break;
@@ -1045,12 +1046,13 @@ int main(int argc, char *argv[])
 		}
 	}
 	/* parse the last parameter (if exists) as the server name */
-	if (optind == argc - 1)
-		config.server_name = argv[optind];
-    if(config.server_name){
-        printf("servername=%s\n",config.server_name);
-    }
-	else if (optind < argc)
+	// if (optind == argc - 1)
+	// 	config.server_name = argv[optind];
+	// if(config.server_name){
+	//     printf("servername=%s\n",config.server_name);
+	// }
+	// else
+	if (optind < argc)
 	{
 		usage(argv[0]);
 		return 1;
@@ -1058,7 +1060,6 @@ int main(int argc, char *argv[])
 	/* print the used parameters for info*/
 	print_config();
 
-	
 	/* init all of the resources, so cleanup will be easy */
 	resources_init(&res);
 	/* create resources before using them */
@@ -1074,12 +1075,12 @@ int main(int argc, char *argv[])
 		goto main_exit;
 	}
 	/* let the server post the sr */
-	if (!config.server_name)
-		if (post_send(&res, IBV_WR_SEND))
-		{
-			fprintf(stderr, "failed to post sr\n");
-			goto main_exit;
-		}
+	// if (!config.server_name)
+	if (post_send(&res, IBV_WR_SEND))
+	{
+		fprintf(stderr, "failed to post sr\n");
+		goto main_exit;
+	}
 	/* in both sides we expect to get a completion */
 	if (poll_completion(&res))
 	{
@@ -1087,15 +1088,15 @@ int main(int argc, char *argv[])
 		goto main_exit;
 	}
 	/* after polling the completion we have the message in the client buffer too */
-	if (config.server_name)
-		fprintf(stdout, "Message is: '%s'\n", res.buf);
-	else
-	{
-		/* setup server buffer with read message */
-		strcpy(res.buf, RDMAMSGR);
-	}
+	// if (config.server_name)
+	// 	fprintf(stdout, "Message is: '%s'\n", res.buf);
+	// else
+	// {
+	/* setup server buffer with read message */
+	strcpy(res.buf, RDMAMSGR);
+	// }
 	/* Sync so we are sure server side has data ready before client tries to read it */
-	
+
 	if (sock_sync_data(res.sock, 1, temp_send_R, &temp_char)) /* just send a dummy char back and forth */
 	{
 		fprintf(stderr, "sync error before RDMA ops\n");
@@ -1104,38 +1105,38 @@ int main(int argc, char *argv[])
 	}
 	/* Now the client performs an RDMA read and then write on server.
 Note that the server has no idea these events have occured */
-	if (config.server_name)
-	{
-		/* First we read contens of server's buffer */
-		if (post_send(&res, IBV_WR_RDMA_READ))
-		{
-			fprintf(stderr, "failed to post SR 2\n");
-			rc = 1;
-			goto main_exit;
-		}
-		if (poll_completion(&res))
-		{
-			fprintf(stderr, "poll completion failed 2\n");
-			rc = 1;
-			goto main_exit;
-		}
-		fprintf(stdout, "Contents of server's buffer: '%s'\n", res.buf);
-		/* Now we replace what's in the server's buffer */
-		strcpy(res.buf, RDMAMSGW);
-		fprintf(stdout, "Now replacing it with: '%s'\n", res.buf);
-		if (post_send(&res, IBV_WR_RDMA_WRITE))
-		{
-			fprintf(stderr, "failed to post SR 3\n");
-			rc = 1;
-			goto main_exit;
-		}
-		if (poll_completion(&res))
-		{
-			fprintf(stderr, "poll completion failed 3\n");
-			rc = 1;
-			goto main_exit;
-		}
-	}
+	// if (config.server_name)
+	// {
+	// 	/* First we read contens of server's buffer */
+	// 	if (post_send(&res, IBV_WR_RDMA_READ))
+	// 	{
+	// 		fprintf(stderr, "failed to post SR 2\n");
+	// 		rc = 1;
+	// 		goto main_exit;
+	// 	}
+	// 	if (poll_completion(&res))
+	// 	{
+	// 		fprintf(stderr, "poll completion failed 2\n");
+	// 		rc = 1;
+	// 		goto main_exit;
+	// 	}
+	// 	fprintf(stdout, "Contents of server's buffer: '%s'\n", res.buf);
+	// 	/* Now we replace what's in the server's buffer */
+	// 	strcpy(res.buf, RDMAMSGW);
+	// 	fprintf(stdout, "Now replacing it with: '%s'\n", res.buf);
+	// 	if (post_send(&res, IBV_WR_RDMA_WRITE))
+	// 	{
+	// 		fprintf(stderr, "failed to post SR 3\n");
+	// 		rc = 1;
+	// 		goto main_exit;
+	// 	}
+	// 	if (poll_completion(&res))
+	// 	{
+	// 		fprintf(stderr, "poll completion failed 3\n");
+	// 		rc = 1;
+	// 		goto main_exit;
+	// 	}
+	// }
 	/* Sync so server will know that client is done mucking with its memory */
 	if (sock_sync_data(res.sock, 1, temp_send_W, &temp_char)) /* just send a dummy char back and forth */
 	{
@@ -1143,8 +1144,8 @@ Note that the server has no idea these events have occured */
 		rc = 1;
 		goto main_exit;
 	}
-	if (!config.server_name)
-		fprintf(stdout, "Contents of server buffer: '%s'\n", res.buf);
+	// if (!config.server_name)
+	fprintf(stdout, "Contents of server buffer: '%s'\n", res.buf);
 	rc = 0;
 main_exit:
 	if (resources_destroy(&res))
